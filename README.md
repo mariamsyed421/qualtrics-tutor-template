@@ -1,6 +1,6 @@
 # Qualtrics Tutor Template
 
-A drop-in JavaScript engine for building interactive practice question interfaces inside Qualtrics surveys. Researchers paste one script into the survey header and get a fully styled tutoring interface — no coding required beyond swapping question IDs.
+A drop-in JavaScript engine for building interactive practice question interfaces inside Qualtrics surveys. Researchers paste one script into the survey header and get a fully styled tutoring interface with no coding required beyond swapping question IDs.
 
 ---
 
@@ -9,7 +9,6 @@ A drop-in JavaScript engine for building interactive practice question interface
 - Renders **multiple choice**, **short answer**, and **code writing** questions inside any Qualtrics Text/Graphic question
 - Shows **correct/incorrect feedback** after each answer, with optional explanatory text
 - Displays an **objective signpost** above each question card (e.g. "Unit 1")
-- Tracks a **question counter** ("Question 1", "Question 2") across multiple blocks
 - Logs per-question correctness to Qualtrics **Embedded Data** for export
 
 ---
@@ -161,7 +160,7 @@ window.Tutor.init({
 
 ## Generating your question bank with an LLM
 
-Instead of writing JSON by hand, paste the prompt below into Claude or ChatGPT with your questions at the bottom. It will output the exact code block to paste into your header.
+Instead of writing JSON by hand, paste the prompt below into an LLM (Claude, ChatGPT, Gemini, etc.) with your questions at the bottom. It will output the exact code block to paste into your header.
 
 ---
 
@@ -234,5 +233,4 @@ MY QUESTIONS
 ## Known limitations
 
 - **Grading is exact match only** for short answer and code questions. LLM-based grading is a planned future addition.
-- **Question counter** shows "Question N" without a total (e.g. "Question 1") because Qualtrics does not expose block count to JavaScript.
 - **Question bank lives in the header**, so updating questions requires re-pasting the header.
