@@ -1,0 +1,395 @@
+<script>
+window.Tutor = (function () {
+
+  var _questionBank = [];
+  var _styleInjected = false;
+
+  function injectStyles() {
+    if (_styleInjected) return;
+    _styleInjected = true;
+    var fontLink = document.createElement("link");
+    fontLink.rel = "stylesheet";
+    fontLink.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
+    document.head.appendChild(fontLink);
+    var style = document.createElement("style");
+    style.innerHTML = [
+      ".tutor-wrap { max-width: 720px; margin: 32px auto; font-family: Plus Jakarta Sans, sans-serif; text-align: center; }",
+      ".tutor-objective { display: block; text-align: center; font-size: 26px; font-weight: 600; color: #2b2a28; margin-bottom: 20px; text-transform: capitalize; }",
+      ".tutor-topbar { display: flex; align-items: center; justify-content: center; margin-bottom: 0; }",
+      ".tutor-dots { display: none; }",
+      ".tutor-progress-label { display: none; }",
+      ".tutor-card { background: #ffffff; border: 1px solid #e3e1d9; border-radius: 16px; padding: 32px 36px; text-align: left; }",
+      ".tutor-question-label { font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9b9b9b; margin: 0 0 14px; }",
+      ".tutor-prompt { font-weight: 500; font-size: 18px; line-height: 1.6; color: #2b2a28; margin: 0 0 24px; white-space: pre-wrap; }",
+      ".tutor-choice { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: transparent; border: 1.5px solid #d0d0d0; border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; font-size: 17px; cursor: pointer; font-family: inherit; color: #2b2a28; box-sizing: border-box; transition: border-color 0.15s ease; }",
+      ".tutor-choice:hover { border-color: #0B6FD0; background: transparent; }",
+      ".tutor-choice:hover .tutor-choice-letter { border-color: #0B6FD0; color: #0B6FD0; }",
+      ".tutor-choice.selected { border-color: #0B6FD0; background: transparent; }",
+      ".tutor-choice-letter { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; min-width: 30px; border-radius: 50%; border: 1.5px solid #d0d0d0; font-size: 13px; font-weight: 700; color: #6b6b6b; background: transparent; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease; }",
+      ".tutor-choice.selected .tutor-choice-letter { background: #0B6FD0; border-color: #0B6FD0; color: #ffffff; }",
+      ".tutor-input { width: 100%; font-size: 17px; padding: 12px 16px; border: 1.5px solid #d0d0d0; border-radius: 10px; margin-bottom: 16px; box-sizing: border-box; font-family: inherit; resize: vertical; min-height: 80px; line-height: 1.5; background: #ffffff !important; color: #2b2a28; }",
+      ".tutor-code-input { width: 100%; font-size: 14px; padding: 16px; border: none; border-radius: 6px; margin-bottom: 16px; box-sizing: border-box; font-family: Menlo, Monaco, Consolas, monospace; resize: vertical; min-height: 180px; line-height: 1.6; background: #1a1a1a !important; color: #ffffff !important; caret-color: #ffffff; }",
+      ".tutor-code-input:hover { background: #1a1a1a !important; color: #ffffff !important; }",
+      ".tutor-code-input:focus { background: #1a1a1a !important; color: #ffffff !important; outline: none; }",
+      ".tutor-feedback { display: none; margin-top: 16px; text-align: left; }",
+      ".tutor-feedback.correct { display: block; }",
+      ".tutor-feedback.incorrect { display: block; }",
+      ".tutor-feedback.partial { display: block; }",
+      ".tutor-feedback-loading { display: block; font-size: 16px; padding: 16px 18px; border-radius: 10px; margin-top: 16px; background: #f4f6f8; color: #6b6b6b; font-style: italic; }",
+      ".tutor-feedback-card { background: #ffffff; border: 1px solid #e3e1d9; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }",
+      ".tutor-feedback-verdict { font-weight: 700; font-size: 15px; padding: 10px 18px; }",
+      ".tutor-feedback.correct .tutor-feedback-verdict { background: #d4edda; color: #155724; }",
+      ".tutor-feedback.incorrect .tutor-feedback-verdict { background: #f8d7da; color: #721c24; }",
+      ".tutor-feedback.partial .tutor-feedback-verdict { background: #fff3cd; color: #856404; }",
+      ".tutor-feedback-explanation { font-size: 16px; line-height: 1.65; color: #2b2a28; padding: 16px 18px; }",
+      ".tutor-feedback-sample { background: #eaf3de; border-radius: 12px; padding: 18px 20px; }",
+      ".tutor-feedback-sample-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #3a6b1a; margin-bottom: 10px; }",
+      ".tutor-feedback-sample-text { font-size: 16px; line-height: 1.65; color: #27500a; }",
+      ".tutor-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }",
+      ".tutor-btn { font-size: 15px; padding: 11px 22px; border-radius: 10px; border: none; background: #0B6FD0; color: #ffffff; cursor: pointer; font-weight: 600; font-family: inherit; }",
+      ".tutor-btn:hover { background: #0960b8; }",
+      ".tutor-btn:disabled { opacity: 0.4; cursor: not-allowed; }"
+    ].join(" ");
+    document.head.appendChild(style);
+  }
+
+  function gradeAnswer(question, response) {
+    if (question.type === "mcq") return response === question.answer;
+    return String(response).trim().toLowerCase() === String(question.answerKey).trim().toLowerCase();
+  }
+
+  function init(opts) {
+    opts = opts || {};
+    _questionBank = opts.questionBank || [];
+    injectStyles();
+  }
+
+  function makeEl(tag, className, styleStr) {
+    var el = document.createElement(tag);
+    if (className) el.className = className;
+    if (styleStr) el.style.cssText = styleStr;
+    return el;
+  }
+
+  function renderQuestion(opts) {
+    injectStyles();
+    var qid = opts.id;
+    var container = opts.container;
+    var onComplete = opts.onComplete || function () {};
+
+    var q = null;
+    for (var i = 0; i < _questionBank.length; i++) {
+      if (_questionBank[i].id === qid) { q = _questionBank[i]; break; }
+    }
+    if (!q) { console.error("Tutor: question not found: " + qid); return; }
+
+    var wrap      = makeEl("div", "tutor-wrap");
+    var topbar    = makeEl("div", "tutor-topbar");
+    var objLabel  = makeEl("span", "tutor-objective");
+    var progLabel = makeEl("span", "tutor-progress-label");
+    var dots      = makeEl("div", "tutor-dots");
+    var card      = makeEl("div", "tutor-card");
+    var qLabel    = makeEl("p", "tutor-question-label");
+    var prompt    = makeEl("p", "tutor-prompt");
+    var mcqArea   = makeEl("div", "tutor-mcq-area", "display:none");
+    var shortArea = makeEl("div", "tutor-short-area", "display:none");
+    var input     = makeEl("textarea", "tutor-input");
+    var feedback  = makeEl("div", "tutor-feedback");
+    var actions   = makeEl("div", "tutor-actions");
+    var checkBtn  = makeEl("button", "tutor-btn tutor-check-btn");
+    var nextBtn   = makeEl("button", "tutor-btn tutor-next-btn", "display:none");
+
+    input.placeholder = "Type your answer";
+    input.rows = 3;
+    checkBtn.type = "button";
+    checkBtn.textContent = "Check answer";
+    nextBtn.type = "button";
+    nextBtn.textContent = "Next";
+
+    topbar.appendChild(objLabel);
+    topbar.appendChild(dots);
+    topbar.appendChild(progLabel);
+    shortArea.appendChild(input);
+    actions.appendChild(checkBtn);
+    actions.appendChild(nextBtn);
+    card.appendChild(qLabel);
+    card.appendChild(prompt);
+    card.appendChild(mcqArea);
+    card.appendChild(shortArea);
+    card.appendChild(actions);
+    wrap.appendChild(topbar);
+    wrap.appendChild(card);
+    wrap.appendChild(feedback);
+    container.innerHTML = "";
+    container.appendChild(wrap);
+
+    function setupDisplay(questionIndex) {
+      objLabel.textContent = q.objective.replace(/_/g, " ");
+      qLabel.textContent = "Question " + questionIndex;
+    }
+
+    prompt.textContent = q.prompt;
+
+    if (q.type === "mcq") {
+      mcqArea.style.display = "block";
+      shortArea.style.display = "none";
+      var selectedChoice = null;
+      var letters = ["A", "B", "C", "D"];
+      q.choices.forEach(function (choice, i) {
+        var btn = makeEl("button", "tutor-choice");
+        btn.type = "button";
+        var circle = makeEl("span", "tutor-choice-letter");
+        circle.textContent = letters[i] || String.fromCharCode(65 + i);
+        btn.appendChild(circle);
+        btn.appendChild(document.createTextNode(choice));
+        btn.onclick = function () {
+          selectedChoice = choice;
+          var btns = mcqArea.querySelectorAll(".tutor-choice");
+          for (var i = 0; i < btns.length; i++) { btns[i].classList.remove("selected"); }
+          btn.classList.add("selected");
+        };
+        mcqArea.appendChild(btn);
+      });
+
+      checkBtn.onclick = function () {
+        if (!selectedChoice) return;
+        var correct = gradeAnswer(q, selectedChoice);
+        showFeedback(correct, q);
+        checkBtn.style.display = "none";
+        nextBtn.style.display = "inline-block";
+        onComplete({ id: qid, correct: correct });
+      };
+
+    } else {
+      mcqArea.style.display = "none";
+      shortArea.style.display = "block";
+      if (q.type === "code") {
+        input.className = "tutor-code-input";
+        input.placeholder = "# Write your code here...";
+        input.rows = 8;
+      }
+
+      checkBtn.onclick = function () {
+        if (!input.value.trim()) return;
+
+        if (q.feedbackType === "llm") {
+          input.disabled = true;
+          checkBtn.disabled = true;
+          checkBtn.textContent = "Getting feedback...";
+          feedback.className = "tutor-feedback-loading";
+          feedback.innerHTML = "Analyzing your response...";
+
+          callLLMGrader(q, input.value.trim(), function (result) {
+            checkBtn.style.display = "none";
+            showLLMFeedback(result, q);
+            nextBtn.style.display = "inline-block";
+            onComplete({ id: qid, correct: result.score === "full_credit" });
+          }, function () {
+            checkBtn.style.display = "none";
+            feedback.className = "tutor-feedback incorrect";
+            feedback.innerHTML = "";
+            var errCard = makeEl("div", "tutor-feedback-card");
+            var errMsg = makeEl("div", "tutor-feedback-verdict");
+            errMsg.textContent = "Could not retrieve feedback. Please continue.";
+            errCard.appendChild(errMsg);
+            feedback.appendChild(errCard);
+            nextBtn.style.display = "inline-block";
+            onComplete({ id: qid, correct: false });
+          });
+
+        } else {
+          var correct = gradeAnswer(q, input.value);
+          input.disabled = true;
+          showFeedback(correct, q);
+          checkBtn.style.display = "none";
+          nextBtn.style.display = "inline-block";
+          onComplete({ id: qid, correct: correct });
+        }
+      };
+    }
+
+    function callLLMGrader(q, studentAnswer, onSuccess, onError) {
+      var MAX_CHARS = 2000;
+
+      if (studentAnswer.length > MAX_CHARS) {
+        feedback.className = "tutor-feedback incorrect";
+        feedback.innerHTML = "";
+        var errCard = makeEl("div", "tutor-feedback-card");
+        var errMsg = makeEl("div", "tutor-feedback-verdict");
+        errMsg.textContent = "Your answer is too long (" + studentAnswer.length + " characters, limit is " + MAX_CHARS + "). Please shorten your response.";
+        errCard.appendChild(errMsg);
+        feedback.appendChild(errCard);
+        checkBtn.style.display = "none";
+        nextBtn.style.display = "inline-block";
+        onComplete({ id: qid, correct: false });
+        return;
+      }
+
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function () { controller.abort(); }, 25000);
+
+      var gradingPrompt =
+        "You are a helpful instructor providing feedback on a student short-answer response.\n\n" +
+        "QUESTION:\n" + q.prompt + "\n\n" +
+        "STUDENT ANSWER:\n" + studentAnswer + "\n\n" +
+        "SCORING CRITERIA:\n" +
+        "Full Credit: " + (q.fullCredit || "") + "\n" +
+        "Partial Credit: " + (q.partialCredit || "") + "\n\n" +
+        "SAMPLE CORRECT RESPONSE:\n" + (q.sampleResponse || "") + "\n\n" +
+        "Evaluate the student answer against the scoring criteria and provide brief educational feedback.\n\n" +
+        "SCORING GUIDANCE:\n" +
+        "- Award full_credit if the student clearly demonstrates understanding of all required concepts, even if their response is concise or does not restate every detail verbatim.\n" +
+        "- Award partial_credit only if the student is genuinely missing a required concept or has a substantive gap, not just because they were brief.\n" +
+        "- When a response is borderline between two levels, lean toward the higher credit level.\n" +
+        "- Be encouraging and specific. Address the student directly.\n" +
+        "- Do not quote the scoring criteria text verbatim in your feedback.\n\n" +
+        "GUIDELINES FOR feedback_html:\n" +
+        "- full_credit: affirm what the student did well\n" +
+        "- partial_credit: acknowledge what was correct, explain what was missing\n" +
+        "- no_credit: gently explain the correct approach without being discouraging\n" +
+        "- Use <p> and <strong> tags only. Keep it to 2-4 sentences.\n\n" +
+        "Respond with ONLY a valid JSON object. No markdown. No code blocks. Just raw JSON:\n" +
+        "{\"score\": \"full_credit\" or \"partial_credit\" or \"no_credit\", \"feedback_html\": \"your feedback here\"}";
+
+      // ── PROXY URL ──────────────────────────────────────────────────────────
+      // Replace this with your own deployed proxy URL.
+      // See the tutor-proxy repo for one-click Vercel deployment.
+      var PROXY_URL = "https://YOUR-PROXY-URL.vercel.app/api/grade";
+      // ──────────────────────────────────────────────────────────────────────
+
+      fetch(PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: gradingPrompt, model: "gemini-2.5-pro" }),
+        signal: controller.signal
+      })
+      .then(function (res) {
+        clearTimeout(timeoutId);
+        return res.json();
+      })
+      .then(function (data) {
+        var raw = data.choices[0].message.content.trim()
+          .replace(/^```json\n?/, "").replace(/^```\n?/, "").replace(/\n?```$/, "").trim();
+        var parsed = JSON.parse(raw);
+        onSuccess(parsed);
+      })
+      .catch(function (err) {
+        clearTimeout(timeoutId);
+        console.error("LLM grading error:", err);
+        var isTimeout = err.name === "AbortError";
+        feedback.className = "tutor-feedback-loading";
+        feedback.innerHTML = isTimeout
+          ? "Feedback timed out. Please review the sample answer and continue."
+          : "Could not retrieve feedback. Please continue.";
+        onError(err);
+      });
+    }
+
+    function showLLMFeedback(result, q) {
+      var score = result.score;
+      var bannerClass, bannerLabel;
+      if (score === "full_credit") {
+        bannerClass = "tutor-feedback correct";
+        bannerLabel = "Full Credit";
+      } else if (score === "partial_credit") {
+        bannerClass = "tutor-feedback partial";
+        bannerLabel = "Partial Credit";
+      } else {
+        bannerClass = "tutor-feedback incorrect";
+        bannerLabel = "Needs More Work";
+      }
+      feedback.className = bannerClass;
+      feedback.innerHTML = "";
+
+      var fcard = makeEl("div", "tutor-feedback-card");
+      var verdict = makeEl("div", "tutor-feedback-verdict");
+      verdict.textContent = bannerLabel;
+      fcard.appendChild(verdict);
+      var fbText = makeEl("div", "tutor-feedback-explanation");
+      fbText.innerHTML = result.feedback_html || "";
+      fcard.appendChild(fbText);
+      feedback.appendChild(fcard);
+
+      if (q.sampleResponse) {
+        var sampleWrap = makeEl("div", "tutor-feedback-sample");
+        var sampleLabel = makeEl("div", "tutor-feedback-sample-label");
+        sampleLabel.textContent = "Sample Response";
+        var sampleText = makeEl("div", "tutor-feedback-sample-text");
+        sampleText.textContent = q.sampleResponse;
+        sampleWrap.appendChild(sampleLabel);
+        sampleWrap.appendChild(sampleText);
+        feedback.appendChild(sampleWrap);
+      }
+    }
+
+    function showFeedback(correct, q) {
+      var ft = q.feedbackType || "correct_answer";
+      if (ft === "none") return;
+      feedback.className = "tutor-feedback " + (correct ? "correct" : "incorrect");
+      feedback.innerHTML = "";
+
+      var fcard = makeEl("div", "tutor-feedback-card");
+      var verdict = makeEl("div", "tutor-feedback-verdict");
+
+      if (ft === "correct_answer") {
+        verdict.textContent = correct ? "Correct!" : "Not quite. The answer was " + (q.type === "mcq" ? q.answer : q.answerKey) + ".";
+        fcard.appendChild(verdict);
+      } else if (ft === "static") {
+        verdict.textContent = correct ? "Correct!" : "Not quite. The answer was " + (q.type === "mcq" ? q.answer : q.answerKey) + ".";
+        fcard.appendChild(verdict);
+        if (q.staticExplanation) {
+          var explanation = makeEl("div", "tutor-feedback-explanation");
+          explanation.textContent = q.staticExplanation;
+          fcard.appendChild(explanation);
+        }
+      }
+      feedback.appendChild(fcard);
+    }
+
+    return { setupDisplay: setupDisplay };
+  }
+
+  return { init: init, renderQuestion: renderQuestion };
+})();
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// PASTE YOUR QUESTION BANK HERE
+// Replace the array below with your own questions.
+// Use the ingestion prompt in the README to generate this from your content.
+// Do NOT change window.Tutor.init({ questionBank: [...] }) — only replace [...].
+// ══════════════════════════════════════════════════════════════════════════════
+window.Tutor.init({
+  questionBank: [
+    {
+      "id": "q_001",
+      "objective": "unit_1",
+      "type": "mcq",
+      "prompt": "In a __ participants design, participants are randomly assigned to different groups.",
+      "choices": ["within", "repeated", "independent", "between"],
+      "answer": "between",
+      "feedbackType": "correct_answer"
+    },
+    {
+      "id": "q_002",
+      "objective": "unit_1",
+      "type": "short_answer",
+      "prompt": "What is the major disadvantage of a within-participants design?",
+      "answerKey": "carryover effects",
+      "feedbackType": "static",
+      "staticExplanation": "Within-participants designs are susceptible to order and carryover effects because participants experience all conditions sequentially."
+    },
+    {
+      "id": "q_003",
+      "objective": "unit_1",
+      "type": "short_answer",
+      "prompt": "Explain the third variable problem and give an example.",
+      "feedbackType": "llm",
+      "fullCredit": "Student correctly defines the third variable problem as a correlation between two variables that exists only because both are caused by a third variable, and provides a valid example.",
+      "partialCredit": "Student shows partial understanding but explanation is incomplete or example is missing.",
+      "sampleResponse": "The third variable problem occurs when two variables appear correlated but both are actually caused by a third variable. For example, ice cream sales and crime rates are correlated, but both are caused by hot weather."
+    }
+  ]
+});
+</script>
