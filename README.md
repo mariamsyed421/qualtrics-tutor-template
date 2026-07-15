@@ -7,9 +7,7 @@ A drop-in JavaScript engine for building interactive practice question interface
 ## What this does
 
 - Renders **multiple choice**, **short answer**, and **code writing** questions inside any Qualtrics Text/Graphic question
-- Shows **correct/incorrect feedback** after each answer — simple, static explanatory, or AI-generated
-- Displays an **objective signpost** above each question card (e.g. "Unit 1")
-- Tracks a **question counter** ("Question 1", "Question 2") across blocks
+- Shows **correct/incorrect feedback** after each answer (static or explanatory)
 - Logs per-question correctness to Qualtrics **Embedded Data** for export
 
 ---
@@ -18,15 +16,15 @@ A drop-in JavaScript engine for building interactive practice question interface
 
 | File | What it is |
 |---|---|
-| `engine.html` | The tutor engine — paste contents into your survey header |
+| `engine.html` | The tutor template — paste contents into your survey header |
 
 ---
 
-## Quick start
+## Set up
 
 ### Step 1 — Deploy the grading proxy (required for LLM feedback only)
 
-If you want AI-generated feedback (`feedbackType: "llm"`), you need to deploy a small proxy that holds your Gemini API key securely. If you only use `"correct_answer"` or `"static"` feedback, skip this step.
+If you want LLM-generated feedback (`feedbackType: "llm"`), you need to deploy a small proxy that holds your Gemini API key securely. If you only use `"correct_answer"` or `"static"` feedback, skip this step.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_GITHUB_USERNAME/tutor-proxy&env=GEMINI_API_KEY&envDescription=Your%20Google%20Gemini%20API%20key&envLink=https://aistudio.google.com/app/apikey&project-name=tutor-proxy&repository-name=tutor-proxy)
 
@@ -293,5 +291,3 @@ MY QUESTIONS
 
 - **Short answer and code grading is exact match** unless `feedbackType: "llm"` is used.
 - **Question bank lives in the header**, so updating questions requires re-pasting the header.
-- **Question counter shows "Question N"** without a total because Qualtrics does not expose block count to JavaScript.
-- **LLM feedback requires the proxy** — the Gemini API key cannot be stored safely in Qualtrics itself.
